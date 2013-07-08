@@ -24,8 +24,11 @@ References:
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
+var rest = require('restler');
+var TEMP_FILE = "index_temp.tmp";
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var HTML_ADDRESS = "http://powerful-temple-7287.herokuapp.com/"
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -61,14 +64,30 @@ var clone = function(fn) {
     return fn.bind({});
 };
 
+var response2console = function(result, response) {
+        if (result instanceof Error) {
+            console.error('Error: ' + util.format(response.message));
+        } else {
+      //      console.error("Wrote %s", TEMP_FILE);
+            fs.writeFileSync(TEMP_FILE, result);
+	    var checkJson = checkHtmlFile(TEMP_FILE, program.checks);
+	    var outJson = JSON.stringify(checkJson, null, 4);
+	    console.log(outJson);
+        }
+};
+
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+        .option('-u, --url <url>', 'Path to url index.html', HTML_ADDRESS)
+ 
+      .parse(process.argv);
+    //console.error("Checks: %s\nURL: %s", program.checks, program.url);
+ 
+
+    rest.get(program.url).on('complete', response2console);
+
+
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
